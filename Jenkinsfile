@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE = pwd()  // Получаем текущий рабочий каталог
         CMAKE = 'C:\\Program Files\\CMake\\bin\\cmake.exe'
         GENERATOR = 'Visual Studio 17 2022'
     }
@@ -10,27 +9,26 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [[
+                        $class: 'RelativeTargetDirectory',
+                        relativeTargetDir: 'src'
+                    ]],
+                    userRemoteConfigs: [[url: 'https://github.com/illusion278/guess-the-number.git']]
+                ])
             }
         }
 
         stage('Build') {
             steps {
                 bat """
-                    cd "${WORKSPACE}"
+                    cd src
                     if not exist build mkdir build
                     cd build
-                    "${CMAKE}" -G "${GENERATOR}" "${WORKSPACE}"
+                    "${CMAKE}" -G "${GENERATOR}" ..
                     "${CMAKE}" --build . --config Release
-                """
-            }
-        } 
-         
-        stage('Verify Files') {
-            steps {
-                bat """
-                    dir "${WORKSPACE}"
-                    type "${WORKSPACE}\\CMakeLists.txt"
                 """
             }
         }
@@ -38,7 +36,7 @@ pipeline {
         stage('Test') {
             steps {
                 bat """
-                    cd "${WORKSPACE}\\build\\Release"
+                    cd src\\build\\Release
                     guess-the-number.exe
                 """
             }
