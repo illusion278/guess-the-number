@@ -24,6 +24,15 @@ pipeline {
                     "${CMAKE}" --build . --config Release
                 """
             }
+        } 
+         
+        stage('Verify Files') {
+            steps {
+                bat """
+                    dir "${WORKSPACE}"
+                    type "${WORKSPACE}\\CMakeLists.txt"
+                """
+            }
         }
 
         stage('Test') {
