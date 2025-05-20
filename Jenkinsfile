@@ -1,31 +1,31 @@
 pipeline {
     agent any
 
+    environment {
+        CMAKE = 'C:\\Program Files\\CMake\\bin\\cmake.exe'
+        GENERATOR = 'Visual Studio 17 2022'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm  // Однократный checkout
             }
         }
 
-        stage('Install dependencies') {
+        stage('Build') {
             steps {
-                bat 'npm install'
+                bat """
+                    mkdir build || cd build
+                    "${CMAKE}" -G "${GENERATOR}" ..
+                    "${CMAKE}" --build . --config Release
+                """
             }
         }
 
         stage('Test') {
             steps {
-                bat 'npm test'
-            }
-        }
-
-        stage('Deploy') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo 'Deploying application...'
+                bat 'build\\Release\\guess-the-number.exe'
             }
         }
     }
@@ -33,9 +33,6 @@ pipeline {
     post {
         always {
             echo 'Pipeline completed'
-        }
-        success {
-            echo 'Pipeline succeeded!'
         }
         failure {
             echo 'Pipeline failed!'
