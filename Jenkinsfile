@@ -1,4 +1,4 @@
-pipeline {
+﻿pipeline {
     agent any
 
     environment {
@@ -10,44 +10,44 @@ pipeline {
         stage('Verify Tools') {
             steps {
                 script {
-                    // Проверка наличия CMake
+                    // Proverka nalichiya CMake
                     bat """
                         @echo off
-                        echo Проверка CMake: ${CMAKE_PATH}
+                        echo Proverka CMake: ${CMAKE_PATH}
                         if exist ${CMAKE_PATH} (
-                            echo [OK] CMake найден
+                            echo [OK] CMake naiden
                         ) else (
-                            echo [ОШИБКА] CMake не найден по пути: ${CMAKE_PATH}
+                            echo [NO] CMake Ne naiden: ${CMAKE_PATH}
                             exit 1
                         )
                     """
 
-                    // Проверка наличия Visual Studio
+                    // Proverka nalichiya Visual Studio
                     bat """
                         @echo off
-                        echo Проверка Visual Studio: ${VS_PATH}
+                        echo Proverka Visual Studio: ${VS_PATH}
                         if exist ${VS_PATH} (
-                            echo [OK] Visual Studio найден
+                            echo [OK] Visual Studio naiden 
                         ) else (
-                            echo [ОШИБКА] Visual Studio не найдена по пути: ${VS_PATH}
+                            echo [NO] Visual Studio Ne naiden: ${VS_PATH}
                             exit 1
                         )
                     """
 
-                    // Проверка наличия файлов проекта
+                    // Proverka nalichiya failov proekta
                     bat """
                         @echo off
                         if exist CMakeLists.txt (
-                            echo [OK] Найден CMakeLists.txt
+                            echo [OK] naiden CMakeLists.txt
                         ) else (
-                            echo [ОШИБКА] CMakeLists.txt не найден!
+                            echo [NO] CMakeLists.txt ne naiden!
                             exit 1
                         )
 
                         if exist main.cpp (
-                            echo [OK] Найден main.cpp
+                            echo [OK] naiden main.cpp
                         ) else (
-                            echo [ОШИБКА] main.cpp не найден!
+                            echo [NO] main.cpp ne naiden!
                             exit 1
                         )
                     """
@@ -97,19 +97,19 @@ pipeline {
 
     post {
         failure {
-            echo "ДЛЯ ИСПРАВЛЕНИЯ:"
-            echo "1. Убедитесь, что установлены:"
+            echo "Dlya ispravleniya:"
+            echo "1. Ubeditsy, chto ustanovleno:"
             echo "   - Visual Studio 2022 Professional с C++"
             echo "   - CMake 3.15+"
-            echo "2. Проверьте пути в environment{} в Jenkinsfile"
-            echo "3. Запустите Jenkins от имени администратора"
-            echo "4. Проверьте наличие CMakeLists.txt и main.cpp"
-            echo "5. Убедитесь, что имя исполняемого файла совпадает с указанным в CMakeLists.txt"
+            echo "2. Proverit puti v environment{} v Jenkinsfile"
+            echo "3. Zapusk Jenkins ot imeni admina"
+            echo "4. Proverit nalichie CMakeLists.txt and main.cpp"
+            echo "5. Ubeditsya, chto imya ispolnyaemogo faila sovpadaet s ukazannym v CMakeLists.txt"
         }
         
         success {
-            echo "Сборка успешно завершена!"
-            echo "Исполняемый файл: build/Release/guess-the-number.exe"
+            echo "Sborka Uspeshno zaverchena!"
+            echo "Ispolnyemue fail: build/Release/guess-the-number.exe"
         }
     }
 }
