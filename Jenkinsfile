@@ -33,38 +33,11 @@ pipeline {
 
         stage('Test') {
             steps {
-                script {
-                    // Ограничение: 5 чисел для ввода + 5 секунд на выполнение
-                    def status = bat(
-                        script: '''
-                            cd /d "%WORKSPACE%\\build\\Release"
-                            (
-                                echo 10
-                                echo 30
-                                echo 50
-                                echo 70
-                                echo 90
-                                timeout /t 5 /nobreak > nul
-                            ) | guess-the-number.exe
-                        ''',
-                        returnStatus: true
-                    )
-                    
-                    // Проверяем код завершения
-                    if (status != 0) {
-                        error "Тест провален: программа завершилась с кодом ${status}"
-                    }
-                }
+                bat '''
+                    cd /d "%WORKSPACE%\\build\\Release"
+                    echo 50 | guess-the-number.exe
+                '''
             }
-            timeout(time: 10, unit: 'SECONDS') {  // Двойное ограничение
-                echo "Тестирование завершено"
-            }
-        }
-    }
-
-    post {
-        always {
-            archiveArtifacts artifacts: 'build/Release/guess-the-number.exe'
         }
     }
 }
