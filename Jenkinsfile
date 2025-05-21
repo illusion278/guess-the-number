@@ -35,8 +35,16 @@ pipeline {
             steps {
                 bat '''
                     cd /d "%WORKSPACE%\\build\\Release"
-                    echo 50 | guess-the-number.exe
+                    (
+                        echo 10
+                        echo 25
+                        echo 50
+                        echo 75
+                        echo 100
+                    ) | guess-the-number.exe
                 '''
+                timeout(time: 15, unit: 'SECONDS') {
+                    // Ограничение времени выполнения
             }
         }
     }
