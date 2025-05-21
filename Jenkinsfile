@@ -1,24 +1,23 @@
 pipeline {
     agent any
 
-    environment {
-        BUILD_DIR = "${WORKSPACE}/build"
-    }
-
     stages {
-        stage('Checkout') {
+        stage('Clean Workspace') {
             steps {
-                checkout scm
+                bat '''
+                    cd /d "%WORKSPACE%"
+                    rmdir /s /q build || echo "No build directory to remove"
+                '''
             }
         }
 
-        stage('Configure') {
+        stage('Configure CMake') {
             steps {
                 bat '''
-                    cd "${WORKSPACE}"
-                    if not exist build mkdir build
+                    cd /d "%WORKSPACE%"
+                    mkdir build
                     cd build
-                    cmake -G "Visual Studio 16 2019" -A x64 ..
+                    cmake -G "Visual Studio 17 2022" -A x64 ..
                 '''
             }
         }
@@ -26,7 +25,7 @@ pipeline {
         stage('Build') {
             steps {
                 bat '''
-                    cd "${WORKSPACE}/build"
+                    cd /d "%WORKSPACE%\\build"
                     cmake --build . --config Release
                 '''
             }
@@ -35,7 +34,7 @@ pipeline {
         stage('Test') {
             steps {
                 bat '''
-                    cd "${WORKSPACE}/build/Release"
+                    cd /d "%WORKSPACE%\\build\\Release"
                     echo 50 | guess-the-number.exe
                 '''
             }
