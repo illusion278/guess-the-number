@@ -1,67 +1,87 @@
 pipeline {
     agent any
 
+    environment {
+        BUILD_DIR = "${WORKSPACE}\\build"
+        // Для Windows используем явное указание пути к CMake
+        CMAKE_PATH = "C:\\Program Files\\CMake\\bin\\cmake.exe"
+    }
+
     stages {
-        stage('Clean Workspace') {
+        stage('Prepare') {
             steps {
-                bat '''
-                    cd /d "%WORKSPACE%"
-                    rmdir /s /q build 2> nul || echo "No build directory to remove"
-                '''
+                cleanWs()
+                bat """
+                    mkdir "${BUILD_DIR}"
+                    where cmake || echo "CMake not found in PATH"
+                """
             }
         }
 
-        stage('Configure CMake') {
+        stage('Configure') {
             steps {
-                bat '''
-                    cd /d "%WORKSPACE%"
-                    mkdir build
-                    cd build
-                    cmake -G "Visual Studio 17 2022" -A x64 ..
+                bat """
+                    cd "${BUILD_DIR}"
+                    "${CMAKE_PATH}" -G "Visual Studio 17 2022" -A x64 ..
                     if errorlevel 1 exit 1
-                '''
+                """
             }
         }
 
         stage('Build') {
             steps {
-                bat '''
-                    cd /d "%WORKSPACE%\\build"
-                    cmake --build . --config Release
+                bat """
+                    cd "${BUILD_DIR}"
+                    "${CMAKE_PATH}" --build . --config Release --target guess-the-number
                     if errorlevel 1 exit 1
-                '''
+                """
+            }
+        }
+
+        stage('Locate Executable') {
+            steps {
+                script {
+                    // Ищем исполняемый файл по маске
+                    env.EXE_PATH = bat(
+                        script: '@echo off && dir /s /b "*guess-the-number.exe" | find /v "\\vcxproj\\"',
+                        returnStdout: true
+                    ).trim()
+
+                    if (!env.EXE_PATH) {
+                        bat 'dir /s /b *.exe || echo No EXE files found'
+                        error "Executable not found!"
+                    }
+                    echo "Found executable at: ${env.EXE_PATH}"
+                }
             }
         }
 
         stage('Test') {
             steps {
                 script {
-                    // Проверяем, что файл существует
-                    def exePath = "%WORKSPACE%\\build\\Release\\guess-the-number.exe"
-                    def exists = bat(
-                        script: '@echo off && if exist "' + exePath + '" (echo 1) else (echo 0)',
-                        returnStdout: true
-                    ).trim() == '1'
+                    // Подготавливаем тестовые данные
+                    def testInput = """
+                        50
+                        75
+                        42
+                    """
 
-                    if (!exists) {
-                        error "Executable file not found: ${exePath}"
-                    }
-
-                    // Автоматизированный тест (проверяем обработку ввода)
+                    // Запускаем тестирование с таймаутом
                     def output = bat(
-                        script: '''
+                        script: """
                             @echo off
-                            echo 50 > input.txt
-                            echo 75 >> input.txt
-                            echo 42 >> input.txt
-                            guess-the-number.exe < input.txt
-                        ''',
+                            echo ${testInput} > input.txt
+                            "${env.EXE_PATH}" < input.txt
+                        """,
                         returnStdout: true
                     )
 
-                    // Проверяем наличие сообщения о победе
-                    if (!output.contains("Congratulations! You guessed it!")) {
-                        error "Game logic test failed!"
+                    // Анализ результатов
+                    if (output.contains("Congratulations! You guessed it!")) {
+                        echo "Test passed successfully!"
+                    } else {
+                        echo "Test output:\n${output}"
+                        error "Test failed - correct guess not detected!"
                     }
                 }
             }
@@ -70,7 +90,12 @@ pipeline {
 
     post {
         always {
-            bat 'type "%WORKSPACE%\\build\\Release\\game_log.txt" || echo No log file found'
+            archiveArtifacts artifacts: "**/*.exe, **/*.log", allowEmptyArchive: true
+            junit "**/test-results.xml" allowEmptyResults: true
+        }
+        failure {
+            bat 'tasklist /FI "IMAGENAME eq guess-the-number.exe" /NH'
+            bat 'taskkill /F /IM guess-the-number.exe /T || echo "Process not found"'
         }
     }
 }
