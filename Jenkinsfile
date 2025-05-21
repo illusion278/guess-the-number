@@ -2,31 +2,35 @@ pipeline {
     agent any
 
     environment {
+        WORKSPACE = pwd()  // Получаем текущий рабочий каталог
         CMAKE = 'C:\\Program Files\\CMake\\bin\\cmake.exe'
         GENERATOR = 'Visual Studio 17 2022'
     }
 
     stages {
-        stage('Verify Files') {
+        stage('Checkout') {
             steps {
-                bat """
-                    echo РџСЂРѕРІРµСЂРєР° С„Р°Р№Р»РѕРІ:
-                    dir
-                    echo РЎРѕРґРµСЂР¶РёРјРѕРµ CMakeLists.txt:
-                    type CMakeLists.txt || echo Р¤Р°Р№Р» CMakeLists.txt РЅРµ РЅР°Р№РґРµРЅ!
-                """
+                checkout scm
             }
         }
 
         stage('Build') {
             steps {
                 bat """
-                    echo РўРµРєСѓС‰РёР№ РїСѓС‚СЊ: %CD%
+                    cd "${WORKSPACE}"
                     if not exist build mkdir build
                     cd build
-                    "${CMAKE}" -G "${GENERATOR}" ..
-                    if %errorlevel% neq 0 exit /b %errorlevel%
+                    "${CMAKE}" -G "${GENERATOR}" "${WORKSPACE}"
                     "${CMAKE}" --build . --config Release
+                """
+            }
+        } 
+         
+        stage('Verify Files') {
+            steps {
+                bat """
+                    dir "${WORKSPACE}"
+                    type "${WORKSPACE}\\CMakeLists.txt"
                 """
             }
         }
@@ -34,7 +38,7 @@ pipeline {
         stage('Test') {
             steps {
                 bat """
-                    cd build\\Release
+                    cd "${WORKSPACE}\\build\\Release"
                     guess-the-number.exe
                 """
             }
