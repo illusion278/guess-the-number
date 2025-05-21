@@ -2,31 +2,38 @@ pipeline {
     agent any
     
     environment {
-        WORKSPACE = pwd()  // Явное определение рабочей директории
-        CMAKE = 'C:\\Program Files\\CMake\\bin\\cmake.exe'
-        GENERATOR = 'Visual Studio 17 2022'
+        // Проверяемые пути
+        CMAKE_PATH = 'C:\\Program Files\\CMake\\bin\\cmake.exe'
+        VS_GENERATOR = 'Visual Studio 17 2022'
         BUILD_DIR = "${WORKSPACE}\\build"
     }
 
     stages {
-        stage('Verify Files') {
+        stage('Verify Setup') {
             steps {
-                bat """
-                    echo Проверка файлов в рабочей директории:
-                    dir
-                    echo Содержимое CMakeLists.txt:
-                    type CMakeLists.txt || echo Файл CMakeLists.txt не найден!
-                """
+                script {
+                    // Проверка наличия CMakeLists.txt
+                    if (!fileExists('CMakeLists.txt')) {
+                        error("CMakeLists.txt not found in workspace!")
+                    }
+                    
+                    // Проверка инструментов
+                    bat """
+                        where cmake || echo CMake not found!
+                        where msbuild || echo MSBuild not found!
+                    """
+                }
             }
         }
 
         stage('Generate Project') {
             steps {
                 bat """
-                    echo Рабочая директория: %WORKSPACE%
+                    @echo off
                     if not exist "${BUILD_DIR}" mkdir "${BUILD_DIR}"
                     cd "${BUILD_DIR}"
-                    "${CMAKE}" -G "${GENERATOR}" "${WORKSPACE}"
+                    "${CMAKE_PATH}" -G "${VS_GENERATOR}" "${WORKSPACE}"
+                    if %errorlevel% neq 0 exit /b %errorlevel%
                 """
             }
         }
@@ -34,25 +41,28 @@ pipeline {
         stage('Build') {
             steps {
                 bat """
+                    @echo off
                     cd "${BUILD_DIR}"
-                    "${CMAKE}" --build . --config Release
+                    "${CMAKE_PATH}" --build . --config Release
+                    if %errorlevel% neq 0 exit /b %errorlevel%
                 """
             }
         }
 
         stage('Test') {
             options {
-                timeout(time: 1, unit: 'MINUTES')
+                timeout(time: 1, unit: 'MINUTES') 
             }
             steps {
                 bat """
+                    @echo off
                     cd "${BUILD_DIR}\\Release"
                     guess-the-number.exe
                 """
             }
             post {
                 always {
-                    bat 'taskkill /F /IM guess-the-number.exe /T 2>nul || echo Процесс не найден'
+                    bat 'taskkill /F /IM guess-the-number.exe /T 2>nul || echo Process not found'
                 }
             }
         }
@@ -60,9 +70,10 @@ pipeline {
 
     post {
         failure {
-            echo "Сборка завершилась с ошибкой. Проверьте:"
-            echo "1. Наличие CMakeLists.txt в корне репозитория"
-            echo "2. Пути к CMake и Visual Studio в настройках"
-            echo "3. Права доступа Jenkins к файлам"
+            echo "Build failed! Check:"
+            echo "1. CMakeLists.txt exists in root"
+            echo "2. Visual Studio 2022 installed"
+            echo "3. CMake 3.15+ available in PATH"
         }
     }
+}
