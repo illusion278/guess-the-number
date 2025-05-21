@@ -33,18 +33,23 @@ pipeline {
 
         stage('Test') {
             steps {
-                bat '''
-                    cd /d "%WORKSPACE%\\build\\Release"
-                    (
-                        echo 10
-                        echo 25
-                        echo 50
-                        echo 75
-                        echo 100
-                    ) | guess-the-number.exe
-                '''
-                timeout(time: 15, unit: 'SECONDS') {
-                    // Ограничение времени выполнения
+                script {
+                    def testInputs = [10, 25, 50, 75, 100]
+                    def output = bat(
+                        script: """
+                            cd /d "%WORKSPACE%\\build\\Release"
+                            ${testInputs.collect { "echo ${it}" }.join(' & ')} | guess-the-number.exe
+                        """,
+                        returnStdout: true
+                    )
+                    
+                    if (!output.contains("Правильно")) {
+                        error "Тест не пройден: число не было угадано"
+                    }
+                }
+            }
+            timeout(time: 30, unit: 'SECONDS') {
+                // Ограничение времени выполнения
             }
         }
     }
