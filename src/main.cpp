@@ -38,7 +38,7 @@
 int main() {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
-    Setlocale(LC_ALL, "RUSSIAN");
+    setlocale(LC_ALL, "RUSSIAN");
     std::srand(std::time(0));
     int secretNumber = std::rand() % 100 + 1;
     int guess = 0;
