@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(guess-the-number)
 
+
 # Указываем, что исходники находятся в папке src
 file(GLOB SOURCES "src/*.cpp")
 
